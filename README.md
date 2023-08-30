@@ -2,6 +2,6 @@
 
 Assignments and projects in this class as a mono repo.
 
-# `bored_*` folders
+# `bored` folder
 
-These are things that I create in-class because I am bored.
+Things that I made in class because I was bored.

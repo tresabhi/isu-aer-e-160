@@ -5,7 +5,7 @@ SIZE = 35
 OUTER_RADIUS = int(SIZE / 2)
 INNER_RADIUS = int(OUTER_RADIUS / 4)
 
-index = 1
+index = 0
 
 while True:
   os.system('cls')
