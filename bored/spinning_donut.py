@@ -4,8 +4,10 @@ import os
 SIZE = 35
 OUTER_RADIUS = int(SIZE / 2)
 INNER_RADIUS = int(OUTER_RADIUS / 4)
+SPEED_X = 1
+SPEED_Y = 1 / 2
 
-index = 0
+index = 1
 
 while True:
   os.system('cls')
@@ -14,7 +16,10 @@ while True:
     row = ''
 
     for x in range(int(-SIZE / 2), int(SIZE / 2)):
-      hypot = math.hypot(y, x / math.sin(index * math.pi / 180))
+      theta = index * math.pi / 180
+      scaleX =  math.cos(SPEED_X * theta)
+      scaleY =  math.sin(SPEED_Y * theta)
+      hypot = math.hypot(y / scaleY, x / scaleX)
       row += '##' if hypot <= OUTER_RADIUS and hypot >= INNER_RADIUS else '  '
 
     print(row)
