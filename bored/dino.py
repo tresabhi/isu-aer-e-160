@@ -1,11 +1,14 @@
 import os
 import keyboard
+import time
+import math
 
 RESOLUTION_X = 64
 RESOLUTION_Y = 48
+FRAME_RATE = 30
 
 GROUND_LEVEL = 36
-GRAVITY = -0.1
+GRAVITY = -900
 
 PLAYER_WIDTH = 2
 PLAYER_HEIGHT = 4
@@ -15,49 +18,64 @@ playerX = 16
 playerY = PLAYER_MIN_Y
 playerVelocity = 0
 
-FULL_TILE = '██'
-FULL_TILE_LIGHT = '░░'
-FULL_TILE_MEDIUM = '▒▒'
-FULL_TILE_DARK = '▓▓'
+tiles = {
+  0: '  ',
+  1: '░░',
+  2: '▒▒',
+  3: '▓▓',
+  4: '██',
+}
+
+currentTime = time.time()
+lastTime = currentTime
+deltaTime = 0
 
 def fragment(x: int, y: int):
-  if x == 0 or y == 0 or x == RESOLUTION_X - 1 or y == RESOLUTION_Y - 1: return FULL_TILE_LIGHT
-  if y > GROUND_LEVEL: return FULL_TILE_MEDIUM
-  if x >= playerX and x <= playerX + PLAYER_WIDTH and y >= playerY and y <= playerY + PLAYER_HEIGHT: return FULL_TILE
+  if x == 0 or y == 0 or x == RESOLUTION_X - 1 or y == RESOLUTION_Y - 1: return 1
+  if y > GROUND_LEVEL:
+    return 2 if 3 * math.sin(x + 8 * currentTime) > (y - (RESOLUTION_Y + GROUND_LEVEL) / 2) else 1 
+  if x >= playerX and x <= playerX + PLAYER_WIDTH and y >= playerY and y <= playerY + PLAYER_HEIGHT: return 4
   
-  return '  '
+  return 0
 
 def render():
   os.system('cls')
-  
+  frame = ''
+
   for y in range(RESOLUTION_Y):
-    row = ''
+    frame += '\n'
 
     for x in range(RESOLUTION_X):
-      row += fragment(x, y)
+      frame += tiles[fragment(x, y)]
     
-    print(row)
+  print(frame)
 
 def physics():
   global playerY, playerVelocity
 
   # minus velocity because upside down y axis
-  playerY = min(playerY - playerVelocity, PLAYER_MIN_Y)
-  playerVelocity += GRAVITY
+  playerY = min(playerY - (playerVelocity * deltaTime + 0.5 * GRAVITY * (deltaTime ** 2)), PLAYER_MIN_Y)
+  playerVelocity += GRAVITY * deltaTime
 
   if (playerY == PLAYER_MIN_Y): playerVelocity = 0
 
 def inputs():
     global playerX, playerY, playerVelocity
 
-    if playerY == PLAYER_MIN_Y and keyboard.is_pressed('w'): playerVelocity += 2
-    if keyboard.is_pressed('s'): playerVelocity -= 1
-    if keyboard.is_pressed('a'): playerX -= 1
-    if keyboard.is_pressed('d'): playerX += 1
+    if playerY == PLAYER_MIN_Y and keyboard.is_pressed('w'): playerVelocity += 200
+    if keyboard.is_pressed('s'): playerVelocity -= 1000 * deltaTime
+    if keyboard.is_pressed('a'): playerX -= round(100 * deltaTime)
+    if keyboard.is_pressed('d'): playerX += round(100 * deltaTime)
 
     playerX = min(max(playerX, 1), PLAYER_MAX_X)
 
 while True:
+  time.sleep(1 / FRAME_RATE)
+
+  lastTime = currentTime
+  currentTime = time.time()
+  deltaTime = currentTime - lastTime
+
   inputs()
   physics()
   render()
