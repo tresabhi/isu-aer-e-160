@@ -1,3 +1,12 @@
 {
-  "cSpell.words": ["arange", "factorialize", "hitbox", "hitboxes", "summate"]
+  "cSpell.words": [
+    "arange",
+    "factorialize",
+    "hitbox",
+    "hitboxes",
+    "linalg",
+    "summate",
+    "xlabel",
+    "ylabel"
+  ]
 }
