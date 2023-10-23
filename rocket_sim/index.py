@@ -8,7 +8,7 @@ ur = pint.UnitRegistry()
 arrow_length = 50 * ur.km
 arrow_width= 30 * ur.km
 simulation_time = 360000000 * ur.s
-time_warp = 16
+time_warp = 1
 
 rocket_empty_mass = 29500 * ur.kg
 rocket_payload_mass = 1000 * ur.kg
@@ -38,17 +38,26 @@ def event_handler(event):
     global thrust_angle, time_warp
     
     if event.key == ',':
+        # turn left
         thrust_angle += 10.0 * ur.degree
     elif event.key == '.':
+        # turn right
         thrust_angle -= 10.0 * ur.degree
     elif event.key == '\'':
+        # increase time warp
         time_warp += 1
     elif event.key == ';':
+        # decrease time warp
         time_warp -= 1
+    elif event.key == 'enter':
+        # auto aim for a good orbit because I am lazy
+        thrust_angle = np.arctan2(position[1], position[0]) - 90.0 * ur.degree
     elif hasattr(event, 'button') and event.button == 1:
         if event.xdata < 0.0:
+            # turn left
             thrust_angle += 10.0 * ur.degree
         else:
+            # turn right
             thrust_angle -= 10.0 * ur.degree
     
     time_warp = max(0, time_warp)
@@ -65,7 +74,9 @@ while t < simulation_time:
     
     # crash into Earth detection
     rocket_distance = np.sqrt(np.sum(position ** 2))
-    if t > 0 and rocket_distance <= earth_diameter / 2: velocity = np.array((0.0, 0.0)) * ur.m / ur.s
+    if t > 0 and rocket_distance <= earth_diameter / 2:
+        velocity = np.array((0.0, 0.0)) * ur.m / ur.s
+        break
     
     new_time = time.time() * ur.s
     d_t = new_time - last_time
@@ -83,8 +94,10 @@ while t < simulation_time:
     thrust_magnitude = rocket_full_thrust if rocket_fuel_mass > 0 * ur.kg else 0 * ur.N
     thrust_direction = np.array((np.cos(thrust_angle), np.sin(thrust_angle)))
     thrust = thrust_direction * thrust_magnitude
+    # change in mass is the fuel consumed or whatever is left in the tank (in the last step of burn)
     d_mass = max(-rocket_tsfc * thrust_magnitude * d_t, -rocket_fuel_mass).to(ur.kg)
     
+    # record change in mass seperatly for both fuel left and the mass of the rocket
     rocket_fuel_mass += d_mass
     rocket_mass += d_mass
     
@@ -105,7 +118,9 @@ while t < simulation_time:
         width = arrow_width.to(ur.m).magnitude
     )
     
-    screenspace_x = max(4 * (rocket_distance - earth_diameter / 2), earth_diameter / 4)
+    # perfected values for smooth zooming in and out
+    screenspace_x = min(max(4 * (rocket_distance - earth_diameter / 2), earth_diameter / 4), earth_diameter / 2)
+    # use 3:4 aspect ratio
     screenspace_y = screenspace_x * 3 / 4
     
     plt.title(f"Fuel remaining: {round(rocket_fuel_mass.magnitude)}kg")
@@ -116,8 +131,6 @@ while t < simulation_time:
         position[1].magnitude - screenspace_y.magnitude,
         position[1].magnitude + screenspace_y.magnitude
     ))
-    
-    print(round(velocity[1]), round(position[1]))
     
     figure.canvas.draw()
     figure.canvas.flush_events()
