@@ -7,7 +7,8 @@ ur = pint.UnitRegistry()
 
 arrow_length = 50 * ur.km
 arrow_width= 30 * ur.km
-simulation_time = 3600 * ur.s
+simulation_time = 360000000 * ur.s
+time_warp = 16
 
 rocket_empty_mass = 29500 * ur.kg
 rocket_payload_mass = 1000 * ur.kg
@@ -24,12 +25,8 @@ earth_equator_vel = 460 * ur.m / ur.s
 
 position = np.array((0.0, earth_diameter.magnitude / 2.0)) * ur.m
 velocity = np.array((0.0, 0.0)) * ur.m / ur.s
-thrust_angle = 60.0 * ur.degree
+thrust_angle = 90.0 * ur.degree
 thrust_direction = np.array((0.0, 0.0))
-
-start_time = time.time() * ur.s
-t = 0.0 * ur.s
-d_t = 0.01 * ur.s
 
 figure = plt.figure()
 earth = plt.Circle((0, 0), float(earth_diameter.magnitude / 2.0), color = 'g')
@@ -38,29 +35,43 @@ figure.gca().add_artist(earth)
 arrowplt = plt.arrow(0, 0, 0, 0)
 
 def event_handler(event):
-    global thrust_angle
+    global thrust_angle, time_warp
     
     if event.key == ',':
         thrust_angle += 10.0 * ur.degree
     elif event.key == '.':
         thrust_angle -= 10.0 * ur.degree
+    elif event.key == '\'':
+        time_warp += 1
+    elif event.key == ';':
+        time_warp -= 1
     elif hasattr(event, 'button') and event.button == 1:
         if event.xdata < 0.0:
             thrust_angle += 10.0 * ur.degree
         else:
             thrust_angle -= 10.0 * ur.degree
+    
+    time_warp = max(0, time_warp)
             
 figure.canvas.mpl_connect('key_press_event', event_handler)
 figure.canvas.mpl_connect('button_press_event', event_handler)
 
+last_time = time.time() * ur.s
+t = 0.0 * ur.s
+d_t = 0.0 * ur.s
+
 while t < simulation_time:
     arrowplt.remove()
     
-    new_t = time.time() * ur.s - start_time
-    d_t = new_t - t
-    t = new_t
-    
+    # crash into Earth detection
     rocket_distance = np.sqrt(np.sum(position ** 2))
+    if t > 0 and rocket_distance <= earth_diameter / 2: velocity = np.array((0.0, 0.0)) * ur.m / ur.s
+    
+    new_time = time.time() * ur.s
+    d_t = new_time - last_time
+    d_t *= time_warp
+    last_time = new_time
+    t += d_t
     
     force_of_gravity = (
         (gravitational_constant * earth_mass * rocket_mass)
@@ -81,9 +92,9 @@ while t < simulation_time:
     acceleration = sigma_forces / rocket_mass
     velocity += acceleration * d_t
     position += velocity * d_t
-
+    
     arrow_direction = (thrust_direction * arrow_length).to(ur.m).magnitude
-
+    
     plt.ion()
     plt.grid(True)
     arrowplt = plt.arrow(
@@ -94,9 +105,19 @@ while t < simulation_time:
         width = arrow_width.to(ur.m).magnitude
     )
     
-    plt.title(f"Fuel remaining: {rocket_fuel_mass.magnitude}kg")
-    plt.xlabel(f"Time elapsed: {t.magnitude}s")
-    plt.axis((-1e6, 1e6, 6e6, 7e6))
+    screenspace_x = max(4 * (rocket_distance - earth_diameter / 2), earth_diameter / 4)
+    screenspace_y = screenspace_x * 3 / 4
+    
+    plt.title(f"Fuel remaining: {round(rocket_fuel_mass.magnitude)}kg")
+    plt.xlabel(f"Time elapsed: {round(t.magnitude * 100) / 100}s (x{time_warp} time warp)")
+    plt.axis((
+        position[0].magnitude - screenspace_x.magnitude,
+        position[0].magnitude + screenspace_x.magnitude,
+        position[1].magnitude - screenspace_y.magnitude,
+        position[1].magnitude + screenspace_y.magnitude
+    ))
+    
+    print(round(velocity[1]), round(position[1]))
     
     figure.canvas.draw()
     figure.canvas.flush_events()
