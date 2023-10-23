@@ -16,6 +16,7 @@ rocket_fuel_mass = 480000 * ur.kg
 rocket_mass = rocket_empty_mass + rocket_payload_mass + rocket_fuel_mass
 rocket_tsfc = 3.5e-4 * ur.s / ur.m
 rocket_full_thrust = 7600000 * ur.N
+rocket_throttle
 
 gravitational_constant = 6.674e-11 * ur.m ** 3 / (ur.kg * ur.s ** 2)
 
@@ -49,9 +50,6 @@ def event_handler(event):
     elif event.key == ';':
         # decrease time warp
         time_warp -= 1
-    elif event.key == 'enter':
-        # auto aim for a good orbit because I am lazy
-        thrust_angle = np.arctan2(position[1], position[0]) - 90.0 * ur.degree
     elif hasattr(event, 'button') and event.button == 1:
         if event.xdata < 0.0:
             # turn left
