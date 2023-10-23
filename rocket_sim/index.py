@@ -7,7 +7,8 @@ ur = pint.UnitRegistry()
 
 arrow_length = 50 * ur.km
 arrow_width= 30 * ur.km
-simulation_time = 3600 * ur.s
+# I have made it 4 times as long as suggested because the loop terminates on crash into the earth anyway
+simulation_time = 3600 * 4 * ur.s
 time_warp = 1
 
 rocket_empty_mass = 29500 * ur.kg
