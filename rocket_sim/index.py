@@ -7,7 +7,7 @@ ur = pint.UnitRegistry()
 
 arrow_length = 50 * ur.km
 arrow_width= 30 * ur.km
-simulation_time = 360000000 * ur.s
+simulation_time = 3600 * ur.s
 time_warp = 1
 
 rocket_empty_mass = 29500 * ur.kg
@@ -16,7 +16,6 @@ rocket_fuel_mass = 480000 * ur.kg
 rocket_mass = rocket_empty_mass + rocket_payload_mass + rocket_fuel_mass
 rocket_tsfc = 3.5e-4 * ur.s / ur.m
 rocket_full_thrust = 7600000 * ur.N
-rocket_throttle
 
 gravitational_constant = 6.674e-11 * ur.m ** 3 / (ur.kg * ur.s ** 2)
 
