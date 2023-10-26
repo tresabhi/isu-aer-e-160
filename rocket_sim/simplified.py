@@ -3,17 +3,23 @@ import numpy as np
 from matplotlib import pyplot as plt
 import pint
 
+# I added quality of life features like on-the-fly tweaking time warp
+# and rocket-centered camera but Ms. Riedel said that modded.
+# So, here's the code without thos features... the simplified version
+
 ur = pint.UnitRegistry()
 
+# made the arrow length smaller than the requirement because it's way better this way
 arrow_length = 50 * ur.km
 arrow_width= 30 * ur.km
-# I have made it 4 times as long as suggested because the loop terminates on crash into the earth anyway
 simulation_time = 3600 * 4 * ur.s
-time_warp = 1
+# time warping ability to go "time_warp" times faster than real time
+time_warp = 16
 
 rocket_empty_mass = 29500 * ur.kg
 rocket_payload_mass = 1000 * ur.kg
 rocket_fuel_mass = 480000 * ur.kg
+rocket_fuel_mass_initial = rocket_fuel_mass
 rocket_mass = rocket_empty_mass + rocket_payload_mass + rocket_fuel_mass
 rocket_tsfc = 3.5e-4 * ur.s / ur.m
 rocket_full_thrust = 7600000 * ur.N
@@ -26,14 +32,15 @@ earth_equator_vel = 460 * ur.m / ur.s
 
 position = np.array((0.0, earth_diameter.magnitude / 2.0)) * ur.m
 velocity = np.array((0.0, 0.0)) * ur.m / ur.s
-thrust_angle = 90.0 * ur.degree
+thrust_angle = 60.0 * ur.degree
 thrust_direction = np.array((0.0, 0.0))
 
 figure = plt.figure()
 earth = plt.Circle((0, 0), float(earth_diameter.magnitude / 2.0), color = 'g')
 figure.gca().add_artist(earth)
 
-arrowplt = plt.arrow(0, 0, 0, 0)
+# draw a random arrow; it's gonna be removed instantly so doesn't matter
+arrow_plt = plt.arrow(0, 0, 0, 0)
 
 def event_handler(event):
     global thrust_angle, time_warp
@@ -44,12 +51,6 @@ def event_handler(event):
     elif event.key == '.':
         # turn right
         thrust_angle -= 10.0 * ur.degree
-    elif event.key == '\'':
-        # increase time warp
-        time_warp += 1
-    elif event.key == ';':
-        # decrease time warp
-        time_warp -= 1
     elif hasattr(event, 'button') and event.button == 1:
         if event.xdata < 0.0:
             # turn left
@@ -57,18 +58,20 @@ def event_handler(event):
         else:
             # turn right
             thrust_angle -= 10.0 * ur.degree
-    
-    time_warp = max(0, time_warp)
-            
+
 figure.canvas.mpl_connect('key_press_event', event_handler)
 figure.canvas.mpl_connect('button_press_event', event_handler)
 
+min_screenspace = earth_diameter / 8
+max_screenspace = earth_diameter / 2
+
+# declare variables
 last_time = time.time() * ur.s
 t = 0.0 * ur.s
 d_t = 0.0 * ur.s
 
 while t < simulation_time:
-    arrowplt.remove()
+    arrow_plt.remove()
     
     # crash into Earth detection
     rocket_distance = np.sqrt(np.sum(position ** 2))
@@ -76,6 +79,7 @@ while t < simulation_time:
         velocity = np.array((0.0, 0.0)) * ur.m / ur.s
         break
     
+    # calculate the change in time using the change in time since the last iteration times time warp
     new_time = time.time() * ur.s
     d_t = new_time - last_time
     d_t *= time_warp
@@ -108,7 +112,7 @@ while t < simulation_time:
     
     plt.ion()
     plt.grid(True)
-    arrowplt = plt.arrow(
+    arrow_plt = plt.arrow(
         position[0].to(ur.m).magnitude,
         position[1].to(ur.m).magnitude,
         arrow_direction[0],
@@ -117,17 +121,18 @@ while t < simulation_time:
     )
     
     # perfected values for smooth zooming in and out
-    screenspace_x = min(max(4 * (rocket_distance - earth_diameter / 2), earth_diameter / 4), earth_diameter / 2)
+    fuel_progress = (1 - (rocket_fuel_mass / rocket_fuel_mass_initial))
+    screenspace_x = min_screenspace + (fuel_progress ** 8)* (max_screenspace - min_screenspace)
     # use 3:4 aspect ratio
     screenspace_y = screenspace_x * 3 / 4
     
     plt.title(f"Fuel remaining: {round(rocket_fuel_mass.magnitude)}kg")
     plt.xlabel(f"Time elapsed: {round(t.magnitude * 100) / 100}s (x{time_warp} time warp)")
     plt.axis((
-        position[0].magnitude - screenspace_x.magnitude,
-        position[0].magnitude + screenspace_x.magnitude,
-        position[1].magnitude - screenspace_y.magnitude,
-        position[1].magnitude + screenspace_y.magnitude
+        -screenspace_x.magnitude,
+        screenspace_x.magnitude,
+        earth_diameter.magnitude / 2.0 - screenspace_y.magnitude,
+        earth_diameter.magnitude / 2.0 + screenspace_y.magnitude
     ))
     
     figure.canvas.draw()
